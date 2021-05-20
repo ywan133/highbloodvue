@@ -10,8 +10,16 @@ module.exports = {
     // Paths
     assetsSubDirectory: 'assets',
     assetsPublicPath: '/',
-    proxyTable: {},
-
+    // proxyTable: {
+    //   '/api':{
+    //     target:'http://117.78.27.3:8080/wxServer/jfc/news/single',
+    //     changeOrigin:true,
+    //     pathRewrite:{
+    //       '^/api':'/'
+    //     }
+    //   }
+    // },
+    proxyTable:{},
     // Various Dev Server settings
     host: 'localhost', // can be overwritten by process.env.HOST
     port: 8080, // can be overwritten by process.env.PORT, if port is in use, a free one will be determined

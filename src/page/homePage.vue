@@ -6,24 +6,33 @@
         left-arrow
         @click-left="onClickLeft"
         />
-        <van-search v-model="value" placeholder="请输入搜索关键词" />
+        <van-search v-model="searchValue" show-action placeholder="请输入搜索关键词" @search="onSearch" @cancel="onCancel">
+            <!-- <template #action>
+                <div @click="onSearch">搜索</div>
+            </template> -->
+        </van-search>
         <van-grid>
             <van-grid-item v-for="(item,i) in gridList" 
                 :key="i" 
                 :icon="item.photo" 
                 :text="item.text" 
+                icon-size="30px"
             >
             </van-grid-item>
         </van-grid>
         <van-pull-refresh v-model="refreshing" @refresh="onRefresh" success-text="刷新成功">
-            <van-list v-model="loading" :finished="finished" finished-text="没有更多啦" @load="loadMore" class="publist">
-                <div v-for="(item,index) in dataList" :key="index">
-                    <Item :title="item.Title" 
+            <van-list v-model="loading" :finished="finished" finished-text="没有更多啦" @load="loadMore" class="publist" >
+                <ul>
+                    <li v-for="(item,index) in dataList" :key="index">
+                        <Item :title="item.Title" 
                         :user="item.author"
                         :time="item.Time"
                         :content="item.text"
-                    />
-                </div>
+                        :articleID="item.articleID"
+                        v-on:articleClick="goToArticleDetail"
+                        />
+                    </li>
+                </ul>
             </van-list>
         </van-pull-refresh>
         
@@ -35,10 +44,12 @@
 import FooterNav from "../components/FooterNav.vue";
 import Item from "../components/showItem.vue";
 export default{ 
+    inject:['reload'], 
     data(){
         return{
             active:0,
-            value:'',
+            // articleID:'',
+            searchValue:'',
             imageUrl:require("../assets/zhineng.png"),
             gridList:[
                 {
@@ -61,8 +72,9 @@ export default{
             dataList:[],
             loading:false,
             finished:false,
-            page:1,
+            page:0,
             refreshing:false,
+            searchData:[],
         }
     },
     components:{
@@ -78,6 +90,7 @@ export default{
             return time.getFullYear() + "-" + (time.getMonth() + 1) + "-" + time.getDate()+' '+ time.getHours() + ":" + time.getMinutes() + ":" + time.getSeconds();
         },
         loadMore(){
+            console.log("loadmore")
             this.page+=1;
             this.onLoad();
         },
@@ -99,7 +112,8 @@ export default{
                             Title:item.Title,
                             Time:_this.getTime(item.publishdate),
                             author:item.author,
-                            text:item.sub
+                            text:item.sub,
+                            articleID:item.GoutCenterID.toString()
                         }
                     })
                     this.dataList=this.dataList.concat(appendList);
@@ -121,37 +135,86 @@ export default{
                 this.page=1
                 this.onLoad();
             }
-        }
-    },
-    created(){
-        const _this=this
-        this.$http2({
-                method:'post',
-                url:'getAuditoriumList.do',
-                data:{
-                    DeviceType: 3,
-                    PageCount: 1,
-                    PageRowCount: 10
-                }
-            })
-            .then(res=>{
-                console.log(res.data)
-                // console.log(res.data.data.GetAuditoriumList[0].Title)
-                _this.dataList=res.data.data.GetAuditoriumList.map(function(item){
-                    return{
-                        Title:item.Title,
-                        Time:_this.getTime(item.publishdate),
-                        author:item.author,
-                        text:item.sub
+        },
+        onSearch(){
+            if(this.searchValue=='')
+                this.$toast('输入为空');
+            else{
+                this.$http2({
+                    method:'post',
+                    url:'getAuditoriumList.do',
+                    data:{
+                        DeviceType: 3,
+                        PageCount: 1,
+                        PageRowCount: 50,
+                        Title: this.searchValue
                     }
                 })
-                console.log(_this.dataList)
+                .then(res=>{
+                    const _this=this;
+                    if (res.data.data.GetAuditoriumList.length <= 0) {
+                        _this.$toast('未查询到信息');
+                    }
+                    this.dataList=res.data.data.GetAuditoriumList.map(function(item){
+                        return{
+                            Title:item.Title,
+                            Time:_this.getTime(item.publishdate),
+                            author:item.author,
+                            text:item.sub
+                        }
+                    })
+                })
+                .catch(error=>{
+                    console.log(error)
+                }
+            )
+        }
+        },
+        onCancel(){
+            //刷新
+            this.reload();
+        },
+        goToArticleDetail(articleID){
+            console.log(articleID)
+            this.$router.push({
+                path: '/articledetail',
+                query: {
+                    id:articleID
+                }
+            });
+        }
+        
+    },
+    // created(){
+    //     const _this=this
+    //     this.$http2({
+    //             method:'post',
+    //             url:'getAuditoriumList.do',
+    //             data:{
+    //                 DeviceType: 3,
+    //                 PageCount: 1,
+    //                 PageRowCount: 10
+    //             }
+    //         })
+    //         .then(res=>{
+    //             console.log(res.data)
+    //             // console.log(res.data.data.GetAuditoriumList[0].Title)
+    //             _this.dataList=res.data.data.GetAuditoriumList.map(function(item){
+    //                 return{
+    //                     Title:item.Title,
+    //                     Time:_this.getTime(item.publishdate),
+    //                     author:item.author,
+    //                     text:item.sub,
+    //                     articleID:item.GoutCenterID.toString()
+    //                 }
+    //             })
+    //             console.log(_this.dataList)
 
-            })
-            .catch(error=>{
-                console.log(error)
-            }
-        )
-    }
+    //         })
+    //         .catch(error=>{
+    //             console.log(error)
+    //         }
+    //     )
+    // }
 }
 </script>
